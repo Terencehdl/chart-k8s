@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "HELM.fullname" . }}-pgadmin-deployment
+  labels:
+    app: pgadmin
+  {{- include "HELM.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.pgadminDeployment.replicas }}
+  selector:
+    matchLabels:
+      app: pgadmin
+    {{- include "HELM.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: pgadmin
+      {{- include "HELM.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - env:
+        - name: PGADMIN_DEFAULT_EMAIL
+          valueFrom:
+            secretKeyRef:
+              key: PGADMIN_DEFAULT_EMAIL
+              name: {{ include "HELM.fullname" . }}-pgadmin-secret
+        - name: PGADMIN_DEFAULT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: PGADMIN_DEFAULT_PASSWORD
+              name: {{ include "HELM.fullname" . }}-pgadmin-secret
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: {{ .Values.pgadminDeployment.pgadmin.image.repository }}:{{ .Values.pgadminDeployment.pgadmin.image.tag
+          | default .Chart.AppVersion }}
+        name: pgadmin
+        ports:
+        - containerPort: 80
+        resources: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "HELM.fullname" . }}-pgadmin-service
+  labels:
+  {{- include "HELM.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.pgadminService.type }}
+  selector:
+    app: pgadmin
+  {{- include "HELM.selectorLabels" . | nindent 4 }}
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 80

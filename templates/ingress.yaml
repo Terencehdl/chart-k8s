@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "HELM.fullname" . }}-fastapi-ingress
+  labels:
+  {{- include "HELM.labels" . | nindent 4 }}
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: k3s.my-road-to-devops.cloudns.ph
+    http:
+      paths:
+      - backend:
+          service:
+            name: '{{ include "HELM.fullname" . }}-fastapi-service'
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - k3s.my-road-to-devops.cloudns.ph
+    secretName: fastapi-secret

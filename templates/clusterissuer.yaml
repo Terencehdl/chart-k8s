@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ include "HELM.fullname" . }}-letsencrypt-prod
+  labels:
+  {{- include "HELM.labels" . | nindent 4 }}
+spec:
+  acme:
+    email: terencehdl@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    server: https://acme-v02.api.letsencrypt.org/directory
+    solvers:
+    - http01:
+        ingress:
+          class: traefik

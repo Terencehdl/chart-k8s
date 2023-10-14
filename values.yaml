@@ -1,0 +1,64 @@
+ingress:
+  enabled: true
+pgadminSecret:
+  email: YWRtaW5AYWRtaW4uY29t
+  password: cm9vdA==
+dbSecret:
+  username: YWRtaW4=
+  password: cGFzc3dvcmQ=
+pvc:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: local-path
+  storage: 10Gi
+
+
+
+dbStatefulset:
+  db:
+    ports:
+    - 5432	
+    image:
+      repository: postgres
+      tag: 12.0-alpine
+  replicas: 1
+  volumeClaims:
+    postgresData:
+      requests:
+        storage: 10Gi
+
+
+fastapiDeployment:
+  fastapiContainer:
+    env:
+      postgresHost: db-service
+      postgresPort: "5432"
+    image:
+      repository: terencehdl/fastapi
+      tag: 1.0.1
+  replicas: 3
+  
+fastapiService:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 5000
+  type: ClusterIP
+
+
+pgadminDeployment:
+  pgadmin:
+    image:
+      repository: dpage/pgadmin4
+      tag: latest
+  replicas: 1
+
+pgadminService:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 80
+  type: ClusterIP
+
+kubernetesClusterDomain: cluster.local
+

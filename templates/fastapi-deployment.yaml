@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "HELM.fullname" . }}-fastapi-deployment
+  labels:
+  {{- include "HELM.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.fastapiDeployment.replicas }}
+  selector:
+    matchLabels:
+      app: fastapi
+    {{- include "HELM.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: fastapi
+      {{- include "HELM.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_HOST
+          value: fastapi-chart-helm-db
+        - name: POSTGRES_PORT
+          value: {{ quote .Values.fastapiDeployment.fastapiContainer.env.postgresPort }}
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_USER
+              name: {{ include "HELM.fullname" . }}-db-secret
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: {{ include "HELM.fullname" . }}-db-secret
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: {{ .Values.fastapiDeployment.fastapiContainer.image.repository }}:{{ .Values.fastapiDeployment.fastapiContainer.image.tag
+          | default .Chart.AppVersion }}
+        name: fastapi-container
+        ports:
+        - containerPort: 5000
+        resources: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "HELM.fullname" . }}-fastapi-service
+  labels:
+  {{- include "HELM.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.fastapiService.type }}
+  selector:
+    app: fastapi
+  {{- include "HELM.selectorLabels" . | nindent 4 }}
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 5000

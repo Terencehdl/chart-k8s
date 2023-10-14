@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "HELM.fullname" . }}-db-statefulset
+  labels:
+    {{- include "HELM.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.dbStatefulset.replicas }}
+  selector:
+    matchLabels:
+      app: db
+  serviceName: {{ include "HELM.fullname" . }}-db-service
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - name: db  # Nom du conteneur
+        env:
+        - name: POSTGRES_DB
+          value: storedb
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_USER
+              name: {{ include "HELM.fullname" . }}-db-secret
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: {{ include "HELM.fullname" . }}-db-secret
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: {{ .Values.dbStatefulset.db.image.repository }}:{{ .Values.dbStatefulset.db.image.tag
+          | default .Chart.AppVersion }}
+        ports:
+        - containerPort: 5432
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: postgres-data
+  updateStrategy: {}
+  volumeClaimTemplates:
+  - metadata:
+      creationTimestamp: null
+      name: postgres-data
+    spec:
+      accessModes:
+      - ReadWriteMany
+      dataSource:
+        apiGroup: null
+        kind: ""
+        name: pvc
+      resources: {{ .Values.dbStatefulset.volumeClaims.postgresData | toYaml | nindent
+        8 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "HELM.fullname" . }}-db
+  labels:
+    {{- include "HELM.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: db
+    {{- include "HELM.selectorLabels" . | nindent 4 }}
+  ports:
+    - port: 5432
+      protocol: TCP
+      targetPort: 5432
